@@ -1,0 +1,7 @@
+{
+  "id": "com.example.my-plugin",
+  "name": "My Plugin",
+  "version": "1.0.0",
+  "apiVersion": "^1.0.0",
+  "description": "A Glyph plugin starter."
+}
