@@ -15,10 +15,17 @@ declare module "glyph" {
     mount: (el: HTMLElement, registerCleanup: (cleanup: Disposer) => void) => void;
   }
 
+  /** Read-only workspace access; requires the "workspace:read" permission. */
+  export interface WorkspaceApi {
+    readFile(path: string): Promise<string>;
+    listFiles(): Promise<string[]>;
+  }
+
   export interface GlyphPluginContext {
     readonly apiVersion: string;
     readonly commands: { register(command: CommandContribution): Disposer };
     readonly ui: { addStatusBarItem(item: StatusBarItemContribution): Disposer };
+    readonly workspace: WorkspaceApi;
     notify(message: string): void;
     registerTranslations(
       locale: string,
