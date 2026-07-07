@@ -1,4 +1,4 @@
-// Glyph plugin API (v1.1). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (v1.2). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 declare module "glyph" {
@@ -47,6 +47,8 @@ declare module "glyph" {
       addSidebarPanel(panel: SidebarPanelContribution): Disposer;
       /** API 1.1: one settings UI per plugin, shown in Manage Plugins. */
       addSettingsPanel(panel: MountContribution): Disposer;
+      /** API 1.2: inject a stylesheet after app styles; removed on unload. */
+      addStyles(css: string): Disposer;
     };
     readonly markdown: {
       registerRemarkPlugin(plugin: MarkdownPlugin): Disposer;
