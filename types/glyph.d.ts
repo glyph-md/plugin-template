@@ -1,6 +1,12 @@
 // Glyph plugin API (v1.2). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
+//
+// Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
+// worker and get a subset of this ctx: commands, ui.addStyles, exporters,
+// workspace, settings, notify, and registerTranslations. The markdown APIs
+// and DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel) are
+// main-context only.
 declare module "glyph" {
   export type Disposer = () => void;
 
