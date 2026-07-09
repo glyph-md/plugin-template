@@ -1,12 +1,12 @@
-// Glyph plugin API (v1.2). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (v1.3). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
 // Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
 // worker and get a subset of this ctx: commands, ui.addStyles, exporters,
-// workspace, settings, notify, and registerTranslations. The markdown APIs
-// and DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel) are
-// main-context only.
+// workspace, settings, notify, and registerTranslations. The markdown APIs,
+// spellcheck dictionaries, and DOM mounts
+// (addStatusBarItem/addSidebarPanel/addSettingsPanel) are main-context only.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -44,6 +44,19 @@ declare module "glyph" {
   /** remark/rehype plugin in the shape react-markdown accepts. */
   export type MarkdownPlugin = unknown;
 
+  /**
+   * A spell-check dictionary for one language. `load` resolves the two
+   * Hunspell files as UTF-8 text and runs only when the user first selects
+   * the language in Settings → Editor → Spell Check.
+   */
+  export interface DictionaryContribution {
+    /** Language code stored in the editor setting, e.g. "fa". */
+    language: string;
+    /** Label shown in the Settings language picker, e.g. "فارسی (Persian)". */
+    label: string;
+    load: () => Promise<{ aff: string; dic: string }>;
+  }
+
   export interface GlyphPluginContext {
     readonly apiVersion: string;
     readonly commands: { register(command: CommandContribution): Disposer };
@@ -71,6 +84,14 @@ declare module "glyph" {
     };
     /** API 1.1 */
     readonly exporters: { register(exporter: ExporterContribution): Disposer };
+    /**
+     * API 1.3: contribute spell-check dictionaries. Registering a known code
+     * (including the built-in "en") replaces it; the disposer removes the
+     * language and drops any cached checker. Main-context only.
+     */
+    readonly spellcheck: {
+      registerDictionary(dictionary: DictionaryContribution): Disposer;
+    };
     /**
      * API 1.1: per-plugin persisted settings. Hydrated before activate, so
      * `get` is synchronous; `set` persists in the background.
