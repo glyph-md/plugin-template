@@ -1,6 +1,10 @@
-// Glyph plugin API (v1.2). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.16.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
+//
+// The API is unstable until 1.0: your manifest's `apiVersion` must state the
+// exact host version ("0.16.0"), a caret grants nothing below 1.0, and any
+// bump may break plugins.
 //
 // Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
 // worker and get a subset of this ctx: commands, ui.addStyles, exporters,
@@ -78,6 +82,17 @@ declare module "glyph" {
     readonly settings: {
       get<T = unknown>(key: string): T | undefined;
       set(key: string, value: unknown): void;
+    };
+    /** Contribute a spell-check dictionary; appears in Settings → Editor. */
+    readonly spellcheck: {
+      registerDictionary(dictionary: {
+        /** Language code stored in the editor setting, e.g. "fa". */
+        language: string;
+        /** Label shown in the Settings language picker, e.g. "فارسی (Persian)". */
+        label: string;
+        /** Produce the Hunspell text; called only once the language is selected. */
+        load: () => Promise<{ aff: string; dic: string }>;
+      }): Disposer;
     };
     notify(message: string): void;
     registerTranslations(
