@@ -26,12 +26,12 @@ Try it in Glyph: command palette → **Manage Plugins…** → **Install from fo
 
 Don't bundle React or Glyph internals; the host provides what you need through `ctx`.
 
-Need network access or no UI mounts? Set `"sandbox": true` in `manifest.json` to run in an isolated worker: `fetch` is limited to your declared `network:<host>` permissions, and the ctx subset is commands, `ui.addStyles`, exporters, workspace, settings, notify, and translations. See the [API reference](https://github.com/glyph-md/plugins/blob/main/docs/api-reference.md#sandboxed-plugins).
+Need network access or no UI mounts? Set `"sandbox": true` in `manifest.json` to run in an isolated worker: `fetch` is limited to your declared `network:<host>` permissions, and the ctx subset is commands, `ui.addStyles`, exporters, workspace, assets, settings, notify, and translations. See the [API reference](https://github.com/glyph-md/plugins/blob/main/docs/api-reference.md#sandboxed-plugins).
 
 ## Publish
 
-1. Set your `id`, `name`, `version`, and `description` in `manifest.json`.
-2. `npm run build`, commit `main.js`, and tag a release (so the file has a stable URL).
-3. Open a PR adding your entry to the [marketplace index](https://github.com/glyph-md/plugins) (`mainUrl` points at your tagged `main.js`). See its [CONTRIBUTING guide](https://github.com/glyph-md/plugins/blob/main/CONTRIBUTING.md).
+1. Set your `id`, `name`, `version`, and `description` in `manifest.json`, and list every shipped file (entry + assets) in `files`.
+2. `npm run build`, zip `manifest.json` plus the declared files (`zip -r plugin.zip manifest.json main.js assets` or `Compress-Archive` on Windows), and attach the zip to a tagged release.
+3. Open a PR adding your entry to the [marketplace index](https://github.com/glyph-md/plugins): `packageUrl` points at the release zip and `sha256` is its digest. See its [CONTRIBUTING guide](https://github.com/glyph-md/plugins/blob/main/CONTRIBUTING.md).
 
-Bump `version` + `mainUrl` per release; Glyph then offers users an in-app update.
+Bump `version` + `packageUrl` + `sha256` per release; Glyph then offers users an in-app update.

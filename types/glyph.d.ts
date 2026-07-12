@@ -8,7 +8,7 @@
 //
 // Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
 // worker and get a subset of this ctx: commands, ui.addStyles, exporters,
-// workspace, settings, notify, and registerTranslations. The markdown APIs
+// workspace, assets, settings, notify, and registerTranslations. The markdown APIs
 // and DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel) are
 // main-context only.
 declare module "glyph" {
@@ -67,6 +67,11 @@ declare module "glyph" {
         language: string,
         render: (props: { code: string }) => unknown,
       ): Disposer;
+    };
+    /** Read your own bundled files (the manifest's `files` list); no permission needed. */
+    readonly assets: {
+      readText(path: string): Promise<string>;
+      readBinary(path: string): Promise<Uint8Array>;
     };
     /** Requires the `workspace:read` permission in manifest.json. */
     readonly workspace: {
