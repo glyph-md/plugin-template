@@ -31,7 +31,7 @@ Need network access or no UI mounts? Set `"sandbox": true` in `manifest.json` to
 ## Publish
 
 1. Set your `id`, `name`, `version`, and `description` in `manifest.json`, and list every shipped file (entry + assets) in `files`.
-2. `npm run build`, zip `manifest.json` plus the declared files (`zip -r plugin.zip manifest.json main.js assets` or `Compress-Archive` on Windows), and attach the zip to a tagged release.
-3. Open a PR adding your entry to the [marketplace index](https://github.com/glyph-md/plugins): `packageUrl` points at the release zip and `sha256` is its digest. See its [CONTRIBUTING guide](https://github.com/glyph-md/plugins/blob/main/CONTRIBUTING.md).
+2. Push a tag matching the manifest version (`git tag v1.0.0 && git push origin v1.0.0`). The bundled [Release workflow](.github/workflows/release.yml) builds, zips `manifest.json` + the declared files, creates the GitHub release, and prints the zip's `sha256` plus a ready-to-paste registration snippet in the release notes.
+3. Open a PR to the [marketplace](https://github.com/glyph-md/plugins) adding `plugins/<your-id>/plugin.json` (copy the snippet from the release notes, pick the right `category`) and a `README.md`. See its [CONTRIBUTING guide](https://github.com/glyph-md/plugins/blob/main/CONTRIBUTING.md).
 
-Bump `version` + `packageUrl` + `sha256` per release; Glyph then offers users an in-app update.
+Per release: bump `version` in `manifest.json`, push the matching tag, then PR the updated `version` + `packageUrl` + `sha256` to the marketplace; Glyph then offers users an in-app update.
