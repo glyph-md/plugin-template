@@ -2,7 +2,7 @@
   "id": "com.example.my-plugin",
   "name": "My Plugin",
   "version": "1.0.0",
-  "apiVersion": "0.16.0",
+  "apiVersion": "0.17.0",
   "description": "A Glyph plugin starter.",
   "files": [
     "main.js"

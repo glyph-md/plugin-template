@@ -1,9 +1,9 @@
-// Glyph plugin API (0.16.0). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.17.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
 // The API is unstable until 1.0: your manifest's `apiVersion` must state the
-// exact host version ("0.16.0"), a caret grants nothing below 1.0, and any
+// exact host version ("0.17.0"), a caret grants nothing below 1.0, and any
 // bump may break plugins.
 //
 // Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
@@ -13,6 +13,14 @@
 // main-context only.
 declare module "glyph" {
   export type Disposer = () => void;
+
+  export interface SiteThemeContribution {
+    /** Id referenced from .glyph/site.json, e.g. "solarized". */
+    id: string;
+    /** Human-readable name shown in docs and error messages. */
+    label: string;
+    css: string;
+  }
 
   export interface CommandContribution {
     id: string;
@@ -79,7 +87,16 @@ declare module "glyph" {
       listFiles(): Promise<string[]>;
     };
     /** API 1.1 */
-    readonly exporters: { register(exporter: ExporterContribution): Disposer };
+    readonly exporters: {
+      register(exporter: ExporterContribution): Disposer;
+      /**
+       * API 0.17: contribute a theme for the website export. The CSS is
+       * appended to the exported site's shared style.css after the chrome
+       * (header, nav, outline); workspaces select it via the theme field of
+       * .glyph/site.json.
+       */
+      registerSiteTheme(theme: SiteThemeContribution): Disposer;
+    };
     /**
      * API 1.1: per-plugin persisted settings. Hydrated before activate, so
      * `get` is synchronous; `set` persists in the background.
