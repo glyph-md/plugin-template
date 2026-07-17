@@ -2,9 +2,12 @@
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
-// The API is unstable until 1.0: your manifest's `apiVersion` must state the
-// exact host version ("0.17.0"), a caret grants nothing below 1.0, and any
-// bump may break plugins.
+// The API is unstable until 1.0: the host accepts any declared `apiVersion`
+// inside its compatibility window (floor 0.16.0 through current 0.17.0). The
+// floor moves only on a breaking contract change, the current version only
+// when the contract gains surface, and app releases alone move neither, so a
+// plugin keeps working until the contract actually breaks. A caret grants
+// nothing below 1.0.
 //
 // Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
 // worker and get a subset of this ctx: commands, ui.addStyles, exporters,
