@@ -114,6 +114,13 @@ declare module "glyph" {
         label: string;
         /** Produce the Hunspell text; called only once the language is selected. */
         load: () => Promise<{ aff: string; dic: string }>;
+        /**
+         * ISO 15924 script codes this dictionary covers (e.g. ["Arab"]);
+         * words in other scripts are never checked against it. Defaults to
+         * the language code's likely script, so most dictionaries omit it.
+         * Hosts that predate the field ignore it and infer instead.
+         */
+        scripts?: readonly string[];
       }): Disposer;
     };
     notify(message: string): void;
