@@ -9,11 +9,13 @@
 // floor, so a plugin keeps working until the contract actually breaks. A
 // caret grants nothing below 1.0.
 //
-// Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
-// worker and get a subset of this ctx: commands, ui.addStyles, exporters,
-// workspace, assets, settings, notify, and registerTranslations. The markdown APIs
-// and DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel) are
-// main-context only.
+// Plugins are sandboxed by default: without a manifest "sandbox" flag (or
+// with "sandbox": true) they run in an isolated worker and get a subset of
+// this ctx: commands, ui.addStyles, exporters, workspace, assets, settings,
+// notify, and registerTranslations. The markdown APIs and DOM mounts
+// (addStatusBarItem/addSidebarPanel/addSettingsPanel) are main-context only;
+// declaring "sandbox": false unlocks them but requires the user to accept a
+// separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 

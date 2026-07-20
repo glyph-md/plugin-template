@@ -26,7 +26,7 @@ Try it in Glyph: command palette → **Manage Plugins…** → **Install from fo
 
 Don't bundle React or Glyph internals; the host provides what you need through `ctx`.
 
-Need network access or no UI mounts? Set `"sandbox": true` in `manifest.json` to run in an isolated worker: `fetch` is limited to your declared `network:<host>` permissions, and the ctx subset is commands, `ui.addStyles`, exporters, workspace, assets, settings, notify, and translations. See the [API reference](https://github.com/glyph-md/plugins/blob/main/docs/api-reference.md#sandboxed-plugins).
+Plugins run sandboxed by default (an isolated worker): `fetch` is limited to your declared `network:<host>` permissions, and the ctx subset is commands, `ui.addStyles`, exporters, workspace, assets, settings, notify, and translations. Need the markdown APIs or DOM mounts? Declare `"sandbox": false` in `manifest.json`; users then have to accept a separate full-access warning before your plugin runs. See the [API reference](https://github.com/glyph-md/plugins/blob/main/docs/api-reference.md#sandboxed-plugins).
 
 ## Publish
 
