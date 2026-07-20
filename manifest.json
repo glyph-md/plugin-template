@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "apiVersion": "0.17.0",
   "description": "A Glyph plugin starter.",
+  "sandbox": false,
   "files": [
     "main.js"
   ]

@@ -16,17 +16,9 @@ Try it in Glyph: command palette → **Manage Plugins…** → **Install from fo
 
 ## The API
 
-`src/main.ts` shows the v1 surface (typed via [`types/glyph.d.ts`](types/glyph.d.ts)):
-
-- `ctx.commands.register({ id, title, run })` — add a command to the palette.
-- `ctx.ui.addStatusBarItem({ id, mount })` — add a status bar item; `mount(el, registerCleanup)` is framework-agnostic.
-- `ctx.notify(message)` — show a toast.
-- `ctx.registerTranslations(locale, namespace, resources)` — ship and read your own i18n strings.
-- `ctx.apiVersion` — the host's plugin API version.
+Everything lives in the **[plugin docs](https://glyph-md.github.io/plugins/)**: [Getting Started](https://glyph-md.github.io/plugins/getting-started), [Recipes](https://glyph-md.github.io/plugins/recipes), and the full [API Reference](https://glyph-md.github.io/plugins/api-reference), including the sandbox model (plugins run in an isolated worker by default; `"sandbox": false` needs a user-approved full-access grant). `src/main.ts` is a working sample of the surface, typed via [`types/glyph.d.ts`](types/glyph.d.ts).
 
 Don't bundle React or Glyph internals; the host provides what you need through `ctx`.
-
-Need network access or no UI mounts? Set `"sandbox": true` in `manifest.json` to run in an isolated worker: `fetch` is limited to your declared `network:<host>` permissions, and the ctx subset is commands, `ui.addStyles`, exporters, workspace, assets, settings, notify, and translations. See the [API reference](https://github.com/glyph-md/plugins/blob/main/docs/api-reference.md#sandboxed-plugins).
 
 ## Publish
 
