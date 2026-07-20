@@ -1,0 +1,8 @@
+# Issues for the template itself are tracked in the main Glyph repository.
+# Generated your plugin from this template? Delete this file (or point the
+# link at your own tracker); it ships for the template repo, not your plugin.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a template or plugin API issue
+    url: https://github.com/hamidfzm/glyph/issues/new/choose
+    about: Glyph development is tracked in the main repository, including this template.
