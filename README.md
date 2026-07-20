@@ -16,22 +16,14 @@ Try it in Glyph: command palette → **Manage Plugins…** → **Install from fo
 
 ## The API
 
-`src/main.ts` shows the v1 surface (typed via [`types/glyph.d.ts`](types/glyph.d.ts)):
-
-- `ctx.commands.register({ id, title, run })` — add a command to the palette.
-- `ctx.ui.addStatusBarItem({ id, mount })` — add a status bar item; `mount(el, registerCleanup)` is framework-agnostic.
-- `ctx.notify(message)` — show a toast.
-- `ctx.registerTranslations(locale, namespace, resources)` — ship and read your own i18n strings.
-- `ctx.apiVersion` — the host's plugin API version.
+Everything lives in the **[plugin docs](https://glyph-md.github.io/plugins/)**: [Getting Started](https://glyph-md.github.io/plugins/getting-started), [Recipes](https://glyph-md.github.io/plugins/recipes), and the full [API Reference](https://glyph-md.github.io/plugins/api-reference), including the sandbox model (plugins run in an isolated worker by default; `"sandbox": false` needs a user-approved full-access grant). `src/main.ts` is a working sample of the surface, typed via [`types/glyph.d.ts`](types/glyph.d.ts).
 
 Don't bundle React or Glyph internals; the host provides what you need through `ctx`.
 
-Need network access or no UI mounts? Set `"sandbox": true` in `manifest.json` to run in an isolated worker: `fetch` is limited to your declared `network:<host>` permissions, and the ctx subset is commands, `ui.addStyles`, exporters, workspace, settings, notify, and translations. See the [API reference](https://github.com/glyph-md/plugins/blob/main/docs/api-reference.md#sandboxed-plugins-api-12).
-
 ## Publish
 
-1. Set your `id`, `name`, `version`, and `description` in `manifest.json`.
-2. `npm run build`, commit `main.js`, and tag a release (so the file has a stable URL).
-3. Open a PR adding your entry to the [marketplace index](https://github.com/glyph-md/plugins) (`mainUrl` points at your tagged `main.js`). See its [CONTRIBUTING guide](https://github.com/glyph-md/plugins/blob/main/CONTRIBUTING.md).
+1. Set your `id`, `name`, `version`, and `description` in `manifest.json`, and list every shipped file (entry + assets) in `files`.
+2. Push a tag matching the manifest version (`git tag v1.0.0 && git push origin v1.0.0`). The bundled [Release workflow](.github/workflows/release.yml) builds, zips `manifest.json` + the declared files, creates the GitHub release, and prints the zip's `sha256` plus a ready-to-paste registration snippet in the release notes.
+3. Open a PR to the [marketplace](https://github.com/glyph-md/plugins) adding `plugins/<your-id>/plugin.json` (copy the snippet from the release notes, pick the right `category`) and a `README.md`. See its [CONTRIBUTING guide](https://github.com/glyph-md/plugins/blob/main/CONTRIBUTING.md).
 
-Bump `version` + `mainUrl` per release; Glyph then offers users an in-app update.
+Per release: bump `version` in `manifest.json`, push the matching tag, then PR the updated `version` + `packageUrl` + `sha256` to the marketplace; Glyph then offers users an in-app update.

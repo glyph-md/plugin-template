@@ -1,14 +1,31 @@
-// Glyph plugin API (v1.3). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.17.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
-// Sandboxed plugins ("sandbox": true in manifest.json) run in an isolated
-// worker and get a subset of this ctx: commands, ui.addStyles, exporters,
-// workspace, settings, notify, and registerTranslations. The markdown APIs,
-// spellcheck dictionaries, and DOM mounts
-// (addStatusBarItem/addSidebarPanel/addSettingsPanel) are main-context only.
+// The API is unstable until 1.0: the host accepts any declared `apiVersion`
+// inside its compatibility window, from the floor (0.16.0) up to the host's
+// own app version. Declare the app version you built against; every release
+// widens the window at the top, and only a breaking contract change moves the
+// floor, so a plugin keeps working until the contract actually breaks. A
+// caret grants nothing below 1.0.
+//
+// Plugins are sandboxed by default: without a manifest "sandbox" flag (or
+// with "sandbox": true) they run in an isolated worker and get a subset of
+// this ctx: commands, ui.addStyles, exporters, workspace, assets, settings,
+// notify, and registerTranslations. The markdown APIs, spellcheck
+// dictionaries, and DOM mounts (addStatusBarItem/addSidebarPanel/
+// addSettingsPanel) are main-context only; declaring "sandbox": false unlocks
+// them but requires the user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
+
+  export interface SiteThemeContribution {
+    /** Id referenced from .glyph/site.json, e.g. "solarized". */
+    id: string;
+    /** Human-readable name shown in docs and error messages. */
+    label: string;
+    css: string;
+  }
 
   export interface CommandContribution {
     id: string;
@@ -44,17 +61,21 @@ declare module "glyph" {
   /** remark/rehype plugin in the shape react-markdown accepts. */
   export type MarkdownPlugin = unknown;
 
-  /**
-   * A spell-check dictionary for one language. `load` resolves the two
-   * Hunspell files as UTF-8 text and runs only when the user first selects
-   * the language in Settings → Editor → Spell Check.
-   */
+  /** A spell-check dictionary contributed for one language. */
   export interface DictionaryContribution {
     /** Language code stored in the editor setting, e.g. "fa". */
     language: string;
     /** Label shown in the Settings language picker, e.g. "فارسی (Persian)". */
     label: string;
+    /** Produce the Hunspell text; called only once the language is selected. */
     load: () => Promise<{ aff: string; dic: string }>;
+    /**
+     * ISO 15924 script codes this dictionary covers (e.g. ["Arab"]);
+     * words in other scripts are never checked against it. Defaults to
+     * the language code's likely script, so most dictionaries omit it.
+     * Hosts that predate the field ignore it and infer instead.
+     */
+    scripts?: readonly string[];
   }
 
   export interface GlyphPluginContext {
@@ -77,20 +98,26 @@ declare module "glyph" {
         render: (props: { code: string }) => unknown,
       ): Disposer;
     };
+    /** Read your own bundled files (the manifest's `files` list); no permission needed. */
+    readonly assets: {
+      readText(path: string): Promise<string>;
+      readBinary(path: string): Promise<Uint8Array>;
+    };
     /** Requires the `workspace:read` permission in manifest.json. */
     readonly workspace: {
       readFile(path: string): Promise<string>;
       listFiles(): Promise<string[]>;
     };
     /** API 1.1 */
-    readonly exporters: { register(exporter: ExporterContribution): Disposer };
-    /**
-     * API 1.3: contribute spell-check dictionaries. Registering a known code
-     * (including the built-in "en") replaces it; the disposer removes the
-     * language and drops any cached checker. Main-context only.
-     */
-    readonly spellcheck: {
-      registerDictionary(dictionary: DictionaryContribution): Disposer;
+    readonly exporters: {
+      register(exporter: ExporterContribution): Disposer;
+      /**
+       * API 0.17: contribute a theme for the website export. The CSS is
+       * appended to the exported site's shared style.css after the chrome
+       * (header, nav, outline); workspaces select it via the theme field of
+       * .glyph/site.json.
+       */
+      registerSiteTheme(theme: SiteThemeContribution): Disposer;
     };
     /**
      * API 1.1: per-plugin persisted settings. Hydrated before activate, so
@@ -99,6 +126,10 @@ declare module "glyph" {
     readonly settings: {
       get<T = unknown>(key: string): T | undefined;
       set(key: string, value: unknown): void;
+    };
+    /** Contribute a spell-check dictionary; appears in Settings → Editor. */
+    readonly spellcheck: {
+      registerDictionary(dictionary: DictionaryContribution): Disposer;
     };
     notify(message: string): void;
     registerTranslations(
