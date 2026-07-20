@@ -12,10 +12,10 @@
 // Plugins are sandboxed by default: without a manifest "sandbox" flag (or
 // with "sandbox": true) they run in an isolated worker and get a subset of
 // this ctx: commands, ui.addStyles, exporters, workspace, assets, settings,
-// notify, and registerTranslations. The markdown APIs and DOM mounts
-// (addStatusBarItem/addSidebarPanel/addSettingsPanel) are main-context only;
-// declaring "sandbox": false unlocks them but requires the user to accept a
-// separate full-access warning.
+// notify, and registerTranslations. The markdown APIs, spellcheck
+// dictionaries, and DOM mounts (addStatusBarItem/addSidebarPanel/
+// addSettingsPanel) are main-context only; declaring "sandbox": false unlocks
+// them but requires the user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -60,6 +60,23 @@ declare module "glyph" {
 
   /** remark/rehype plugin in the shape react-markdown accepts. */
   export type MarkdownPlugin = unknown;
+
+  /** A spell-check dictionary contributed for one language. */
+  export interface DictionaryContribution {
+    /** Language code stored in the editor setting, e.g. "fa". */
+    language: string;
+    /** Label shown in the Settings language picker, e.g. "فارسی (Persian)". */
+    label: string;
+    /** Produce the Hunspell text; called only once the language is selected. */
+    load: () => Promise<{ aff: string; dic: string }>;
+    /**
+     * ISO 15924 script codes this dictionary covers (e.g. ["Arab"]);
+     * words in other scripts are never checked against it. Defaults to
+     * the language code's likely script, so most dictionaries omit it.
+     * Hosts that predate the field ignore it and infer instead.
+     */
+    scripts?: readonly string[];
+  }
 
   export interface GlyphPluginContext {
     readonly apiVersion: string;
@@ -112,21 +129,7 @@ declare module "glyph" {
     };
     /** Contribute a spell-check dictionary; appears in Settings → Editor. */
     readonly spellcheck: {
-      registerDictionary(dictionary: {
-        /** Language code stored in the editor setting, e.g. "fa". */
-        language: string;
-        /** Label shown in the Settings language picker, e.g. "فارسی (Persian)". */
-        label: string;
-        /** Produce the Hunspell text; called only once the language is selected. */
-        load: () => Promise<{ aff: string; dic: string }>;
-        /**
-         * ISO 15924 script codes this dictionary covers (e.g. ["Arab"]);
-         * words in other scripts are never checked against it. Defaults to
-         * the language code's likely script, so most dictionaries omit it.
-         * Hosts that predate the field ignore it and infer instead.
-         */
-        scripts?: readonly string[];
-      }): Disposer;
+      registerDictionary(dictionary: DictionaryContribution): Disposer;
     };
     notify(message: string): void;
     registerTranslations(
