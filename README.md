@@ -16,7 +16,7 @@ Try it in Glyph: command palette → **Manage Plugins…** → **Install from fo
 
 ## The API
 
-Everything lives in the **[plugin docs](https://glyph-md.github.io/plugins/)**: [Getting Started](https://glyph-md.github.io/plugins/docs/getting-started), [Recipes](https://glyph-md.github.io/plugins/docs/recipes), and the full [API Reference](https://glyph-md.github.io/plugins/docs/api-reference), including the sandbox model (plugins run in an isolated worker by default; `"sandbox": false` needs a user-approved full-access grant). `src/main.ts` is a working sample of the surface, typed via [`types/glyph.d.ts`](types/glyph.d.ts).
+Everything lives in the **[plugin docs](https://glyph-md.github.io/plugins/)**: [Getting Started](https://glyph-md.github.io/plugins/getting-started), [Recipes](https://glyph-md.github.io/plugins/recipes), and the full [API Reference](https://glyph-md.github.io/plugins/api-reference), including the sandbox model (plugins run in an isolated worker by default; `"sandbox": false` needs a user-approved full-access grant). `src/main.ts` is a working sample of the surface, typed via [`types/glyph.d.ts`](types/glyph.d.ts).
 
 Don't bundle React or Glyph internals; the host provides what you need through `ctx`.
 
