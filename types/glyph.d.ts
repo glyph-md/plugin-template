@@ -1,4 +1,4 @@
-// Glyph plugin API (0.17.0). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.25.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
@@ -11,11 +11,11 @@
 //
 // Plugins are sandboxed by default: without a manifest "sandbox" flag (or
 // with "sandbox": true) they run in an isolated worker and get a subset of
-// this ctx: commands, ui.addStyles, exporters, workspace, assets, settings,
-// notify, and registerTranslations. The markdown APIs, spellcheck
-// dictionaries, and DOM mounts (addStatusBarItem/addSidebarPanel/
-// addSettingsPanel) are main-context only; declaring "sandbox": false unlocks
-// them but requires the user to accept a separate full-access warning.
+// this ctx: commands, ui.addStyles, exporters, documents, workspace, assets,
+// spellcheck, settings, notify, and registerTranslations. The markdown APIs
+// and DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel) are
+// main-context only; declaring "sandbox": false unlocks them but requires the
+// user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -61,6 +61,33 @@ declare module "glyph" {
   /** remark/rehype plugin in the shape react-markdown accepts. */
   export type MarkdownPlugin = unknown;
 
+  /** What a fenced renderer component receives. */
+  export interface FencedRendererProps {
+    code: string;
+    /** 0.25.0: open an image zoomable over the document. Absent in export and print. */
+    openLightbox?: (src: string, label: string) => void;
+  }
+
+  export interface FencedRendererOptions {
+    /**
+     * 0.25.0: light-theme markup (typically an SVG) for print and PDF export,
+     * which cannot reuse a live render drawn in the app theme's colors. The
+     * host sanitizes it.
+     */
+    renderStatic?: (code: string) => Promise<string>;
+  }
+
+  /**
+   * 0.25.0: a document type your plugin opens. Files with these extensions
+   * open read-only and render as one fenced `language` block, so pair it with
+   * a fenced renderer for that language.
+   */
+  export interface FileTypeContribution {
+    /** Extensions without the dot, e.g. ["d2"]. */
+    extensions: readonly string[];
+    language: string;
+  }
+
   /** A spell-check dictionary contributed for one language. */
   export interface DictionaryContribution {
     /** Language code stored in the editor setting, e.g. "fa". */
@@ -85,7 +112,7 @@ declare module "glyph" {
       addStatusBarItem(item: StatusBarItemContribution): Disposer;
       /** API 1.1 */
       addSidebarPanel(panel: SidebarPanelContribution): Disposer;
-      /** API 1.1: one settings UI per plugin, shown in Manage Plugins. */
+      /** API 1.1: one settings UI per plugin, shown in Settings, Plugins. */
       addSettingsPanel(panel: MountContribution): Disposer;
       /** API 1.2: inject a stylesheet after app styles; removed on unload. */
       addStyles(css: string): Disposer;
@@ -93,10 +120,19 @@ declare module "glyph" {
     readonly markdown: {
       registerRemarkPlugin(plugin: MarkdownPlugin): Disposer;
       registerRehypePlugin(plugin: MarkdownPlugin): Disposer;
+      /**
+       * While a render is still pending, mark its element aria-busy="true" so
+       * exports wait for it.
+       */
       registerFencedRenderer(
         language: string,
-        render: (props: { code: string }) => unknown,
+        render: (props: FencedRendererProps) => unknown,
+        options?: FencedRendererOptions,
       ): Disposer;
+    };
+    /** 0.25.0: open files of your own document type. */
+    readonly documents: {
+      registerFileType(fileType: FileTypeContribution): Disposer;
     };
     /** Read your own bundled files (the manifest's `files` list); no permission needed. */
     readonly assets: {
