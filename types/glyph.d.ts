@@ -12,10 +12,10 @@
 // Plugins are sandboxed by default: without a manifest "sandbox" flag (or
 // with "sandbox": true) they run in an isolated worker and get a subset of
 // this ctx: commands, ui.addStyles, exporters, documents, workspace, assets,
-// spellcheck, settings, notify, and registerTranslations. The markdown APIs
-// and DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel) are
-// main-context only; declaring "sandbox": false unlocks them but requires the
-// user to accept a separate full-access warning.
+// spellcheck, settings, notify, and registerTranslations. The markdown APIs,
+// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel), and reading
+// translations (i18n) are main-context only; declaring "sandbox": false
+// unlocks them but requires the user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -61,11 +61,27 @@ declare module "glyph" {
   /** remark/rehype plugin in the shape react-markdown accepts. */
   export type MarkdownPlugin = unknown;
 
-  /** What a fenced renderer component receives. */
+  /** What a fenced renderer receives. */
   export interface FencedRendererProps {
     code: string;
-    /** 0.25.0: open an image zoomable over the document. Absent in export and print. */
+    /**
+     * 0.25.0: open an image zoomable over the document. Absent where the host
+     * offers no zoom; exports strip the interactive attributes a render adds.
+     */
     openLightbox?: (src: string, label: string) => void;
+  }
+
+  /**
+   * 0.25.0: a framework-agnostic fenced renderer that draws into `el`, like the
+   * panel mounts. Mounted again (after the previous cleanups run) whenever the
+   * block's props change. Prefer it: a plugin cannot use the host's React.
+   */
+  export interface FencedRendererMount {
+    mount(
+      el: HTMLElement,
+      props: FencedRendererProps,
+      registerCleanup: (cleanup: Disposer) => void,
+    ): void;
   }
 
   export interface FencedRendererOptions {
@@ -80,12 +96,22 @@ declare module "glyph" {
   /**
    * 0.25.0: a document type your plugin opens. Files with these extensions
    * open read-only and render as one fenced `language` block, so pair it with
-   * a fenced renderer for that language.
+   * a fenced renderer for that language. The language is a plain word, the
+   * extensions letters and digits, and types Glyph opens itself (markdown,
+   * notebooks, canvases, images, media) are refused.
    */
   export interface FileTypeContribution {
     /** Extensions without the dot, e.g. ["d2"]. */
     extensions: readonly string[];
     language: string;
+  }
+
+  /** 0.25.0: read the translations you registered. Not available in the sandbox. */
+  export interface I18nApi {
+    /** Translate `namespace:key` in the app's current language, with i18next `{{name}}` values. */
+    t(key: string, values?: Record<string, unknown>): string;
+    /** Run `listener` after the app switches language, to refresh strings already on screen. */
+    onLanguageChange(listener: () => void): Disposer;
   }
 
   /** A spell-check dictionary contributed for one language. */
@@ -126,7 +152,7 @@ declare module "glyph" {
        */
       registerFencedRenderer(
         language: string,
-        render: (props: FencedRendererProps) => unknown,
+        render: FencedRendererMount | ((props: FencedRendererProps) => unknown),
         options?: FencedRendererOptions,
       ): Disposer;
     };
@@ -163,6 +189,8 @@ declare module "glyph" {
       get<T = unknown>(key: string): T | undefined;
       set(key: string, value: unknown): void;
     };
+    /** 0.25.0: read your translations in the app's language. */
+    readonly i18n: I18nApi;
     /** Contribute a spell-check dictionary; appears in Settings → Editor. */
     readonly spellcheck: {
       registerDictionary(dictionary: DictionaryContribution): Disposer;
