@@ -73,8 +73,10 @@ declare module "glyph" {
 
   /**
    * 0.25.0: a framework-agnostic fenced renderer that draws into `el`, like the
-   * panel mounts. Mounted again (after the previous cleanups run) whenever the
-   * block's props change. Prefer it: a plugin cannot use the host's React.
+   * panel mounts. When the block's props change, the previous cleanups run and
+   * it is mounted again over its previous output, so it can keep that on
+   * screen until the new render is ready (set aria-busy on `el` meanwhile).
+   * Prefer it: a plugin cannot use the host's React.
    */
   export interface FencedRendererMount {
     mount(
@@ -95,10 +97,10 @@ declare module "glyph" {
 
   /**
    * 0.25.0: a document type your plugin opens. Files with these extensions
-   * open read-only and render as one fenced `language` block, so pair it with
-   * a fenced renderer for that language. The language is a plain word, the
-   * extensions letters and digits, and types Glyph opens itself (markdown,
-   * notebooks, canvases, images, media) are refused.
+   * open in the viewer and render as one fenced `language` block, so pair it
+   * with a fenced renderer for that language. The language is letters, digits,
+   * `-`, and `_`; the extensions letters and digits; and types Glyph opens
+   * itself (markdown, notebooks, canvases, images, media) are refused.
    */
   export interface FileTypeContribution {
     /** Extensions without the dot, e.g. ["d2"]. */
