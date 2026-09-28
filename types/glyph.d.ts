@@ -88,9 +88,10 @@ declare module "glyph" {
 
   export interface FencedRendererOptions {
     /**
-     * 0.25.0: light-theme markup (typically an SVG) for print and PDF export,
-     * which cannot reuse a live render drawn in the app theme's colors. The
-     * host sanitizes it.
+     * 0.25.0: light-theme markup (typically an SVG) for print, PDF, and
+     * website export, which cannot reuse a live render drawn in the app
+     * theme's colors. The host sanitizes it, and a website export drops its
+     * image references other than `data:` URLs.
      */
     renderStatic?: (code: string) => Promise<string>;
   }
