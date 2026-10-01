@@ -61,6 +61,17 @@ declare module "glyph" {
   /** remark/rehype plugin in the shape react-markdown accepts. */
   export type MarkdownPlugin = unknown;
 
+  /**
+   * 0.25.0: a rehype plugin that loads only once a document needs it, so a heavy
+   * renderer (KaTeX for math) costs nothing until then.
+   */
+  export interface LazyMarkdownPlugin {
+    /** A cheap check of a document's markdown. True starts the load. */
+    detect(markdown: string): boolean;
+    /** Import the plugin. Runs once, for the first document `detect` accepts. */
+    load(): Promise<MarkdownPlugin>;
+  }
+
   /** What a fenced renderer receives. */
   export interface FencedRendererProps {
     code: string;
@@ -148,7 +159,14 @@ declare module "glyph" {
     };
     readonly markdown: {
       registerRemarkPlugin(plugin: MarkdownPlugin): Disposer;
-      registerRehypePlugin(plugin: MarkdownPlugin): Disposer;
+      /**
+       * 0.25.0: a {@link LazyMarkdownPlugin} loads only for documents that need it.
+       *
+       * Math: wrap rendered math in an element carrying its TeX source in
+       * `data-math-source`, plus `data-math-display` for block math. PDF export
+       * rasterizes the blocks and PDF and Word fall back to the source.
+       */
+      registerRehypePlugin(plugin: MarkdownPlugin | LazyMarkdownPlugin): Disposer;
       /**
        * While a render is still pending, mark its element aria-busy="true" so
        * exports wait for it.
