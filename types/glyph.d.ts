@@ -1,4 +1,4 @@
-// Glyph plugin API (0.25.0). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.26.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
@@ -13,9 +13,10 @@
 // with "sandbox": true) they run in an isolated worker and get a subset of
 // this ctx: commands, ui.addStyles, exporters, documents, workspace, assets,
 // spellcheck, settings, notify, and registerTranslations. The markdown APIs,
-// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel), and reading
-// translations (i18n) are main-context only; declaring "sandbox": false
-// unlocks them but requires the user to accept a separate full-access warning.
+// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel/openOverlay),
+// documents.getRenderedHtml, and reading translations (i18n) are main-context
+// only; declaring "sandbox": false unlocks them but requires the user to
+// accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -31,6 +32,8 @@ declare module "glyph" {
     id: string;
     title: string;
     run: () => void | Promise<void>;
+    /** 0.26.0: also list it in this native menu (desktop). */
+    menu?: "view";
   }
 
   export interface MountContribution {
@@ -45,17 +48,32 @@ declare module "glyph" {
     title: string;
   }
 
+  /** 0.26.0: what an exporter needs to make its output look like the app. */
+  export interface ExportDocument {
+    title: string;
+    /** Every style rule the app applies, so the body HTML renders as it does in the app. */
+    css: string;
+    /** The app's dark colors apply under `html.dark`. */
+    dark: boolean;
+  }
+
   /**
    * An export format. The host prepares the rendered document, asks for a
    * save location, and writes the file; `build` only turns HTML into contents.
-   * Appears in the palette as "Export: <label>…".
+   * Appears in the palette as "Export: <label>…" and (0.26.0) in File > Export.
    */
   export interface ExporterContribution {
     id: string;
     label: string;
     /** File extension without the dot, e.g. "html". */
     extension: string;
-    build: (bodyHtml: string) => Promise<Uint8Array | string>;
+    build: (bodyHtml: string, doc: ExportDocument) => Promise<Uint8Array | string>;
+  }
+
+  /** 0.26.0: content shown over the whole app, with the window taken fullscreen. */
+  export interface OverlayContribution extends MountContribution {
+    /** Accessible name of the overlay. */
+    label: string;
   }
 
   /** remark/rehype plugin in the shape react-markdown accepts. */
@@ -156,6 +174,11 @@ declare module "glyph" {
       addSettingsPanel(panel: MountContribution): Disposer;
       /** API 1.2: inject a stylesheet after app styles; removed on unload. */
       addStyles(css: string): Disposer;
+      /**
+       * 0.26.0: open an overlay over the whole app, replacing any open one.
+       * Escape closes it and runs its cleanups, as does the returned disposer.
+       */
+      openOverlay(overlay: OverlayContribution): Disposer;
     };
     readonly markdown: {
       registerRemarkPlugin(plugin: MarkdownPlugin): Disposer;
@@ -180,6 +203,12 @@ declare module "glyph" {
     /** 0.25.0: open files of your own document type. */
     readonly documents: {
       registerFileType(fileType: FileTypeContribution): Disposer;
+      /**
+       * 0.26.0: the active document's rendered HTML as exporters receive it, or
+       * null when nothing is rendered. Main-context only: sandboxed plugins
+       * see document content only through an export the user runs.
+       */
+      getRenderedHtml(): Promise<string | null>;
     };
     /** Read your own bundled files (the manifest's `files` list); no permission needed. */
     readonly assets: {
