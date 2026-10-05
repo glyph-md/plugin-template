@@ -1,4 +1,4 @@
-// Glyph plugin API (0.25.0). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.26.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
@@ -13,9 +13,11 @@
 // with "sandbox": true) they run in an isolated worker and get a subset of
 // this ctx: commands, ui.addStyles, exporters, documents, workspace, assets,
 // spellcheck, settings, notify, and registerTranslations. The markdown APIs,
-// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel), and reading
-// translations (i18n) are main-context only; declaring "sandbox": false
-// unlocks them but requires the user to accept a separate full-access warning.
+// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel), reading
+// translations (i18n), and the app state APIs (ui.filterFileTree, the active
+// document, workspace.getRoot/onChange, vault, navigation) are main-context
+// only; declaring "sandbox": false unlocks them but requires the user to
+// accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -40,9 +42,38 @@ declare module "glyph" {
 
   export type StatusBarItemContribution = MountContribution;
 
-  /** A titled sidebar section, rendered below the built-in Outline. */
+  /**
+   * A titled sidebar section, rendered below the built-in Outline or (0.26.0)
+   * as a block in the Files panel.
+   */
   export interface SidebarPanelContribution extends MountContribution {
     title: string;
+    /**
+     * 0.26.0: "files" puts the panel in the Files panel, below the tree, as a
+     * block the user can collapse and resize, whether or not the note has
+     * headings. Absent or "outline" keeps it below the outline.
+     */
+    location?: "outline" | "files";
+    /**
+     * 0.26.0: height bounds of a "files" block in pixels: the smallest the
+     * divider allows, and how far the block grows on its own before it scrolls.
+     */
+    frame?: { min: number; naturalMax?: number };
+    /**
+     * 0.26.0: fills the heading of a "files" block after its title (a count, a
+     * button). While the block is collapsed its element carries `data-collapsed`.
+     */
+    mountHeading?: MountContribution["mount"];
+  }
+
+  /** 0.26.0: a list of workspace files shown in place of the file tree. */
+  export interface FileTreeFilter {
+    /** Heading above the list, e.g. "#project (3)". */
+    label: string;
+    /** Absolute paths, in the order to list them. */
+    paths: readonly string[];
+    /** The user dismissed the list; dispose the filter. */
+    onClear: () => void;
   }
 
   /**
@@ -145,6 +176,79 @@ declare module "glyph" {
     scripts?: readonly string[];
   }
 
+  /** 0.26.0: the document in the active tab. */
+  export interface ActiveDocument {
+    /** Absolute path. */
+    path: string;
+    /** Its text, unsaved edits included; null while it loads or when it has none (an image). */
+    text: string | null;
+    /** The text the user has selected in the window, empty when none. */
+    selection: string;
+  }
+
+  /** 0.26.0: one inbound link to a note. */
+  export interface Backlink {
+    /** Absolute path of the note the link is in. */
+    source: string;
+    /** 1-based source line of the link. */
+    line: number;
+    /** The line's text, trimmed to a readable length. */
+    snippet: string;
+  }
+
+  /** 0.26.0 */
+  export interface TagCount {
+    tag: string;
+    /** Files carrying the tag or a tag nested under it. */
+    count: number;
+  }
+
+  /** 0.26.0 */
+  export interface GraphNode {
+    /** Absolute file path, the unique node id. */
+    id: string;
+    /** File name without its extension. */
+    label: string;
+    /** Number of distinct neighbours, in either direction. */
+    degree: number;
+    orphan: boolean;
+  }
+
+  /** 0.26.0: a resolved link; `source` and `target` are node ids. */
+  export interface GraphEdge {
+    source: string;
+    target: string;
+  }
+
+  /**
+   * 0.26.0: read-only queries over the workspace index. Requires the
+   * `workspace:read` permission; paths are absolute. Not available in the
+   * sandbox.
+   */
+  export interface VaultApi {
+    /** Every indexed note and the resolved links between them. */
+    graph(): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }>;
+    /** Inbound links to the note at `path`. */
+    backlinks(path: string): Promise<Backlink[]>;
+    /** Every tag with the number of files carrying it or a tag nested under it. */
+    tags(): Promise<TagCount[]>;
+    /** Files carrying `tag` or a tag nested under it. */
+    pathsWithTag(tag: string): Promise<string[]>;
+    /** Run `listener` after the index changes: an edit, a rename, another workspace. */
+    onChange(listener: () => void): Disposer;
+  }
+
+  /** 0.26.0: move the app to a document. Not available in the sandbox. */
+  export interface NavigationApi {
+    /**
+     * Open a workspace file in a tab, or switch to its tab. `path` is absolute
+     * or relative to the workspace root; `line` (1-based) scrolls to that
+     * source line once the document has rendered. Throws for a path outside
+     * the workspace, or when none is open.
+     */
+    openFile(path: string, options?: { line?: number }): void;
+  }
+
   export interface GlyphPluginContext {
     readonly apiVersion: string;
     readonly commands: { register(command: CommandContribution): Disposer };
@@ -154,6 +258,11 @@ declare module "glyph" {
       addSidebarPanel(panel: SidebarPanelContribution): Disposer;
       /** API 1.1: one settings UI per plugin, shown in Settings, Plugins. */
       addSettingsPanel(panel: MountContribution): Disposer;
+      /**
+       * 0.26.0: list `paths` in place of the file tree until the returned
+       * disposer runs. One filter shows at a time, the newest.
+       */
+      filterFileTree(filter: FileTreeFilter): Disposer;
       /** API 1.2: inject a stylesheet after app styles; removed on unload. */
       addStyles(css: string): Disposer;
     };
@@ -180,6 +289,13 @@ declare module "glyph" {
     /** 0.25.0: open files of your own document type. */
     readonly documents: {
       registerFileType(fileType: FileTypeContribution): Disposer;
+      /** 0.26.0: the active document, or null when no document tab is active. */
+      getActive(): ActiveDocument | null;
+      /**
+       * 0.26.0: run `listener` when another document becomes active, or none.
+       * Typing in the active one does not count.
+       */
+      onActiveChange(listener: () => void): Disposer;
     };
     /** Read your own bundled files (the manifest's `files` list); no permission needed. */
     readonly assets: {
@@ -190,7 +306,15 @@ declare module "glyph" {
     readonly workspace: {
       readFile(path: string): Promise<string>;
       listFiles(): Promise<string[]>;
+      /** 0.26.0: absolute path of the opened workspace, or null when none is open. */
+      getRoot(): string | null;
+      /** 0.26.0: run `listener` when the workspace opens, closes, or changes. */
+      onChange(listener: () => void): Disposer;
     };
+    /** 0.26.0: query the workspace index. Requires `workspace:read`. */
+    readonly vault: VaultApi;
+    /** 0.26.0: open workspace files. */
+    readonly navigation: NavigationApi;
     /** API 1.1 */
     readonly exporters: {
       register(exporter: ExporterContribution): Disposer;
