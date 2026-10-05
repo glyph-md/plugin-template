@@ -61,7 +61,8 @@ declare module "glyph" {
     frame?: { min: number; naturalMax?: number };
     /**
      * 0.26.0: fills the heading of a "files" block after its title (a count, a
-     * button). While the block is collapsed its element carries `data-collapsed`.
+     * button). While the block is collapsed, the block element around both
+     * mounts carries `data-collapsed`, for a stylesheet to key on.
      */
     mountHeading?: MountContribution["mount"];
   }
@@ -178,7 +179,7 @@ declare module "glyph" {
 
   /** 0.26.0: the document in the active tab. */
   export interface ActiveDocument {
-    /** Absolute path. */
+    /** Absolute path, or the placeholder name of a document not saved yet. */
     path: string;
     /** Its text, unsaved edits included; null while it loads or when it has none (an image). */
     text: string | null;
@@ -234,6 +235,11 @@ declare module "glyph" {
     tags(): Promise<TagCount[]>;
     /** Files carrying `tag` or a tag nested under it. */
     pathsWithTag(tag: string): Promise<string[]>;
+    /**
+     * Whether indexing stopped short of the whole workspace (it is too large).
+     * Every other answer then covers only the part that was indexed.
+     */
+    status(): Promise<{ truncated: boolean }>;
     /** Run `listener` after the index changes: an edit, a rename, another workspace. */
     onChange(listener: () => void): Disposer;
   }
@@ -242,9 +248,10 @@ declare module "glyph" {
   export interface NavigationApi {
     /**
      * Open a workspace file in a tab, or switch to its tab. `path` is absolute
-     * or relative to the workspace root; `line` (1-based) scrolls to that
-     * source line once the document has rendered. Throws for a path outside
-     * the workspace, or when none is open.
+     * or relative to the workspace root; a path outside it throws, as does a
+     * call with no workspace open. `line` (1-based) scrolls the rendered
+     * document to that source line; it has no effect when the note opens in
+     * another window or shows no rendered view. Needs no permission.
      */
     openFile(path: string, options?: { line?: number }): void;
   }
@@ -289,7 +296,10 @@ declare module "glyph" {
     /** 0.25.0: open files of your own document type. */
     readonly documents: {
       registerFileType(fileType: FileTypeContribution): Disposer;
-      /** 0.26.0: the active document, or null when no document tab is active. */
+      /**
+       * 0.26.0: the active document, or null when no document tab is active.
+       * Needs no permission.
+       */
       getActive(): ActiveDocument | null;
       /**
        * 0.26.0: run `listener` when another document becomes active, or none.
