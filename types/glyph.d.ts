@@ -57,6 +57,7 @@ declare module "glyph" {
     /**
      * 0.26.0: height bounds of a "files" block in pixels: the smallest the
      * divider allows, and how far the block grows on its own before it scrolls.
+     * Both must be finite and not negative, or the panel is refused.
      */
     frame?: { min: number; naturalMax?: number };
     /**
@@ -71,7 +72,10 @@ declare module "glyph" {
   export interface FileTreeFilter {
     /** Heading above the list, e.g. "#project (3)". */
     label: string;
-    /** Absolute paths, in the order to list them. */
+    /**
+     * Workspace files in the order to list them, absolute or relative to the
+     * workspace root. A path outside the workspace is refused.
+     */
     paths: readonly string[];
     /** The user dismissed the list; dispose the filter. */
     onClear: () => void;
@@ -267,7 +271,9 @@ declare module "glyph" {
       addSettingsPanel(panel: MountContribution): Disposer;
       /**
        * 0.26.0: list `paths` in place of the file tree until the returned
-       * disposer runs. One filter shows at a time, the newest.
+       * disposer runs. One filter shows at a time, the newest. Throws for a
+       * malformed filter, a path outside the workspace, or when no workspace
+       * is open.
        */
       filterFileTree(filter: FileTreeFilter): Disposer;
       /** API 1.2: inject a stylesheet after app styles; removed on unload. */
