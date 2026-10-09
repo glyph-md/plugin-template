@@ -13,11 +13,13 @@
 // with "sandbox": true) they run in an isolated worker and get a subset of
 // this ctx: commands, ui.addStyles, exporters, documents, workspace, assets,
 // spellcheck, settings, notify, and registerTranslations. The markdown APIs,
-// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel/openOverlay),
-// documents.getRenderedHtml, reading translations (i18n), and the app state
-// APIs (ui.filterFileTree, the active document, workspace.getRoot/onChange,
-// vault, navigation) are main-context only; declaring "sandbox": false unlocks
-// them but requires the user to accept a separate full-access warning.
+// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel/
+// addWorkspaceSettingsPanel/openOverlay), documents.getRenderedHtml, reading
+// translations (i18n), the app state APIs (ui.filterFileTree, the active
+// document, workspace.getRoot/onChange, vault, navigation), and workspace
+// writes and settings (workspace.createFile/getSettings/setSettings) are
+// main-context only; declaring "sandbox": false unlocks them but requires the
+// user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -34,7 +36,17 @@ declare module "glyph" {
     title: string;
     run: () => void | Promise<void>;
     /** 0.26.0: also list it in this native menu (desktop). */
-    menu?: "view";
+    menu?: "file" | "view";
+    /**
+     * 0.26.0: the default keyboard shortcut, as an accelerator such as
+     * "CmdOrCtrl+Shift+T". It must hold CmdOrCtrl or Alt, and cannot be a chord
+     * text editing needs (CmdOrCtrl with A, C, V, X, Y, Z, or Shift+Z); one the
+     * app does not take is dropped and the command stays. The user can rebind
+     * it under Settings, Hotkeys.
+     */
+    shortcut?: string;
+    /** 0.26.0: offer the command only while a folder workspace is open. */
+    when?: "workspace";
   }
 
   export interface MountContribution {
@@ -81,6 +93,20 @@ declare module "glyph" {
     paths: readonly string[];
     /** The user dismissed the list; dispose the filter. */
     onClear: () => void;
+  }
+
+  /** 0.26.0: a tab in Workspace Settings. */
+  export interface WorkspaceSettingsPanelContribution extends MountContribution {
+    /** The tab's label. */
+    title: string;
+  }
+
+  /** 0.26.0: what `workspace.createFile` did. */
+  export interface CreatedFile {
+    /** Absolute path of the file, spelled as it is on disk. */
+    path: string;
+    /** False when a file was already there and was left as it is. */
+    created: boolean;
   }
 
   /** 0.26.0: what an exporter needs to make its output look like the app. */
@@ -287,6 +313,11 @@ declare module "glyph" {
       /** API 1.1: one settings UI per plugin, shown in Settings, Plugins. */
       addSettingsPanel(panel: MountContribution): Disposer;
       /**
+       * 0.26.0: add a tab to Workspace Settings, for what the plugin keeps per
+       * workspace (see `workspace.getSettings`).
+       */
+      addWorkspaceSettingsPanel(panel: WorkspaceSettingsPanelContribution): Disposer;
+      /**
        * 0.26.0: list `paths` in place of the file tree until the returned
        * disposer runs. One filter shows at a time, the newest. Throws for a
        * malformed filter, a path outside the workspace, or when no workspace
@@ -346,7 +377,10 @@ declare module "glyph" {
       readText(path: string): Promise<string>;
       readBinary(path: string): Promise<Uint8Array>;
     };
-    /** Requires the `workspace:read` permission in manifest.json. */
+    /**
+     * Reading requires the `workspace:read` permission in manifest.json, and
+     * writing `workspace:write`. Paths are workspace-relative.
+     */
     readonly workspace: {
       readFile(path: string): Promise<string>;
       listFiles(): Promise<string[]>;
@@ -354,6 +388,25 @@ declare module "glyph" {
       getRoot(): string | null;
       /** 0.26.0: run `listener` when the workspace opens, closes, or changes. */
       onChange(listener: () => void): Disposer;
+      /**
+       * 0.26.0: create a file with `content`, along with any folders it needs.
+       * It never replaces a file: one that is already there is left as it is
+       * and reported with `created: false`. A hidden file or folder (a name
+       * starting with a dot) is refused. Requires `workspace:write`.
+       */
+      createFile(path: string, content?: string): Promise<CreatedFile>;
+      /**
+       * 0.26.0: what this plugin keeps for the opened workspace, empty when it
+       * has saved nothing. It lives in the workspace's `.glyph/config.json`, so
+       * it travels with the folder and can be edited by hand: check the values.
+       * Requires `workspace:read`.
+       */
+      getSettings(): Promise<Record<string, unknown>>;
+      /**
+       * 0.26.0: replace what this plugin keeps for the opened workspace, at
+       * most 64 KiB as JSON. Requires `workspace:write`.
+       */
+      setSettings(settings: Record<string, unknown>): Promise<void>;
     };
     /** 0.26.0: query the workspace index. Requires `workspace:read`. */
     readonly vault: VaultApi;
