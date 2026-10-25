@@ -1,4 +1,4 @@
-// Glyph plugin API (0.26.0). Mirrors what the host passes to `activate(ctx)`.
+// Glyph plugin API (0.28.0). Mirrors what the host passes to `activate(ctx)`.
 // Imported as `import type { PluginModule } from "glyph"`; type-only, so the
 // bundler drops it (there is no runtime "glyph" package).
 //
@@ -159,6 +159,14 @@ declare module "glyph" {
      * offers no zoom; exports strip the interactive attributes a render adds.
      */
     openLightbox?: (src: string, label: string) => void;
+    /**
+     * 0.28.0: replace the block's body with `code` in the open document, or the
+     * whole file for a document that renders as this one block, as one edit the
+     * user can undo. Resolves false, writing nothing, when the document no longer
+     * holds the block as it rendered. Absent where the block cannot be saved: an
+     * embedded note, a link preview, a canvas card, a notebook, AI chat, an export.
+     */
+    updateCode?: (code: string) => Promise<boolean>;
   }
 
   /**
