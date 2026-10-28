@@ -344,7 +344,11 @@ declare module "glyph" {
        * is open.
        */
       filterFileTree(filter: FileTreeFilter): Disposer;
-      /** API 1.2: inject a stylesheet after app styles; removed on unload. */
+      /**
+       * API 1.2: inject a stylesheet after app styles (custom CSS; a scheme the
+       * user should be able to pick goes through `addColorScheme`); removed on
+       * unload.
+       */
       addStyles(css: string): Disposer;
       /**
        * 0.28.0: offer a color scheme in the Settings > Appearance picker. Only
