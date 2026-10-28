@@ -11,15 +11,15 @@
 //
 // Plugins are sandboxed by default: without a manifest "sandbox" flag (or
 // with "sandbox": true) they run in an isolated worker and get a subset of
-// this ctx: commands, ui.addStyles, exporters, documents, workspace, assets,
-// spellcheck, settings, notify, and registerTranslations. The markdown APIs,
-// DOM mounts (addStatusBarItem/addSidebarPanel/addSettingsPanel/
-// addWorkspaceSettingsPanel/openOverlay), documents.getRenderedHtml, reading
-// translations (i18n), the app state APIs (ui.filterFileTree, the active
-// document, workspace.getRoot/onChange, vault, navigation), and workspace
-// writes and settings (workspace.createFile/getSettings/setSettings) are
-// main-context only; declaring "sandbox": false unlocks them but requires the
-// user to accept a separate full-access warning.
+// this ctx: commands, ui.addStyles, ui.addColorScheme, exporters, documents,
+// workspace, assets, spellcheck, settings, notify, and registerTranslations.
+// The markdown APIs, DOM mounts (addStatusBarItem/addSidebarPanel/
+// addSettingsPanel/addWorkspaceSettingsPanel/openOverlay),
+// documents.getRenderedHtml, reading translations (i18n), the app state APIs
+// (ui.filterFileTree, the active document, workspace.getRoot/onChange, vault,
+// navigation), and workspace writes and settings (workspace.createFile/
+// getSettings/setSettings) are main-context only; declaring "sandbox": false
+// unlocks them but requires the user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
 
@@ -27,6 +27,18 @@ declare module "glyph" {
     /** Id referenced from .glyph/site.json, e.g. "solarized". */
     id: string;
     /** Human-readable name shown in docs and error messages. */
+    label: string;
+    css: string;
+  }
+
+  /**
+   * 0.28.0: a color scheme for the picker in Settings > Appearance. Its CSS sets
+   * the app's color tokens on `:root` and `:root.dark`.
+   */
+  export interface ColorSchemeContribution {
+    /** Unique within the plugin; two plugins may use the same id. */
+    id: string;
+    /** The scheme's name in the picker. */
     label: string;
     css: string;
   }
@@ -334,6 +346,15 @@ declare module "glyph" {
       filterFileTree(filter: FileTreeFilter): Disposer;
       /** API 1.2: inject a stylesheet after app styles; removed on unload. */
       addStyles(css: string): Disposer;
+      /**
+       * 0.28.0: offer a color scheme in the Settings > Appearance picker. Only
+       * the scheme the user picks is injected, after the app styles and before
+       * `addStyles` sheets. Throws when the id or label is not a non-empty
+       * string or the css is not a string. In the sandbox such a scheme, or one
+       * whose CSS references a URL, is dropped with a console error instead.
+       * Removed on unload.
+       */
+      addColorScheme(scheme: ColorSchemeContribution): Disposer;
       /**
        * 0.26.0: open an overlay over the whole app, replacing any open one.
        * Escape closes it and runs its cleanups, as does the returned disposer.
