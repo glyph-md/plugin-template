@@ -17,8 +17,9 @@
 // addSettingsPanel/addWorkspaceSettingsPanel/openOverlay),
 // documents.getRenderedHtml, reading translations (i18n), the app state APIs
 // (ui.filterFileTree, the active document, workspace.getRoot/onChange, vault,
-// navigation), and workspace writes and settings (workspace.createFile/
-// getSettings/setSettings) are main-context only; declaring "sandbox": false
+// navigation), workspace writes and settings (workspace.createFile/
+// getSettings/setSettings), and spell-check engines (spellcheck.registerEngine)
+// are main-context only; declaring "sandbox": false
 // unlocks them but requires the user to accept a separate full-access warning.
 declare module "glyph" {
   export type Disposer = () => void;
@@ -242,6 +243,21 @@ declare module "glyph" {
      * Hosts that predate the field ignore it and infer instead.
      */
     scripts?: readonly string[];
+  }
+
+  /** 0.28.0: one dictionary, loaded by a spell-check engine. */
+  export interface SpellChecker {
+    correct(word: string): boolean;
+    suggest(word: string): string[];
+    /** Accept a word for the rest of the session ("Add to Dictionary"). */
+    add(word: string): void;
+    /** Free the dictionary once it is replaced or removed, or its engine is. */
+    dispose?(): void;
+  }
+
+  /** 0.28.0: builds a checker from a dictionary's Hunspell `.aff`/`.dic` text. */
+  export interface SpellcheckEngine {
+    create(aff: string, dic: string): Promise<SpellChecker>;
   }
 
   /** 0.26.0: the document in the active tab. */
@@ -469,6 +485,12 @@ declare module "glyph" {
     /** Contribute a spell-check dictionary; appears in Settings → Editor. */
     readonly spellcheck: {
       registerDictionary(dictionary: DictionaryContribution): Disposer;
+      /**
+       * 0.28.0: check every dictionary with this engine instead of the
+       * built-in one, which skips compounding. The disposer restores the
+       * previous engine. Not available in the sandbox.
+       */
+      registerEngine(engine: SpellcheckEngine): Disposer;
     };
     notify(message: string): void;
     registerTranslations(
